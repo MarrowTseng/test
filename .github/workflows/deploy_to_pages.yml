@@ -32,6 +32,7 @@ jobs:
       # 如果您的專案只需要靜態 HTML/CSS，不需要建構步驟，可以只放一個簡單的指令
       - name: Setup Build Output
         run: |
+          cd
           mkdir build_output  # 建立一個資料夾來存放成品
           cp index.html build_output/ # 將您的網站首頁檔案複製進去
           # 假設您的網站檔案都在根目錄，並將它們移動或複製到 'build_output' 資料夾
