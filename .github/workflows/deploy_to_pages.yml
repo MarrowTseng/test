@@ -1,0 +1,75 @@
+# 1. 工作流程名稱
+name: Deploy Static Website to Pages
+
+# 2. 權限設定 (必要！確保 Actions 有權限寫入 Pages)
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# 3. 觸發條件：當推送到 main 分支時執行
+on:
+  push:
+    branches: ["main"]
+
+# 確保同時只有一個部署在進行
+concurrency:
+  group: "pages"
+  cancel-in-progress: true
+
+# 4. 任務 (Jobs) 定義
+jobs:
+  # 任務 1：建構 (Build) 網站
+  build:
+    runs-on: ubuntu-latest  # 使用最新的 Ubuntu 虛擬機
+    steps:
+      - name: Checkout Code # 步驟 1: 下載程式碼
+        uses: actions/checkout@v4
+
+      # -- 🚀 這裡您可以替換成您的專案建構步驟 --
+      
+      # [範例：靜態網站] 
+      # 如果您的專案只需要靜態 HTML/CSS，不需要建構步驟，可以只放一個簡單的指令
+      - name: Setup Build Output
+        run: |
+          mkdir build_output  # 建立一個資料夾來存放成品
+          cp index.html build_output/ # 將您的網站首頁檔案複製進去
+          # 假設您的網站檔案都在根目錄，並將它們移動或複製到 'build_output' 資料夾
+
+      # [範例：Node.js/Vite/React 專案] 
+      # 如果您是前端專案，請替換成以下步驟：
+      # - name: Set up Node.js
+      #   uses: actions/setup-node@v4
+      #   with:
+      #     node-version: 20
+      # - name: Install Dependencies
+      #   run: npm install
+      # - name: Build Website (假設輸出到 'dist' 資料夾)
+      #   run: npm run build 
+      # ---------------------------------------------
+
+      # 步驟 2: 配置 GitHub Pages
+      # 這是固定的配置，用於告訴部署 Action 部署的成品在哪
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+
+      # 步驟 3: 上傳建構成品 (Artifact)
+      # with.path 必須指向您的網站建構輸出的資料夾！
+      # 承接上面的範例，我們使用 'build_output' 作為建構成品資料夾。
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: 'build_output' # <--- 這裡非常重要！請改成您的網站建構輸出目錄
+
+  # 任務 2：部署 (Deployment) 網站
+  deploy:
+    environment:
+      name: github-pages  # 綁定到 Pages 環境 (提供介面顯示)
+      url: ${{ steps.deployment.outputs.page_url }} # 顯示部署後的網址
+    runs-on: ubuntu-latest
+    needs: build  # <--- 確保這個 Job 會在 'build' Job 完成後才開始執行
+    steps:
+      # 步驟 4: 執行部署
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4 # 官方部署 Actions，會使用上個 Job 上傳的成品
